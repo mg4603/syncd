@@ -21,7 +21,11 @@ pub fn run(args: Args) -> Result<()> {
             println!("syncd init (MVP1 dry-run)");
             println!("  src: {}", src.display());
             println!("  dst: {}", dst.display());
-            println!("  status: ready");
+            println!("  status: syncing...");
+
+            crate::sync::initial_sync(&src, &dst)?;
+
+            println!("  status: done");
             Ok(())
         }
     }
