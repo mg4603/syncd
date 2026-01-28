@@ -23,19 +23,7 @@ pub fn initial_sync(src: &Path, dst: &Path) -> Result<()> {
         }
 
         if entry.file_type().is_file() {
-            if let Some(parent) = dst_path.parent() {
-                std::fs::create_dir_all(parent).with_context(|| {
-                    format!("Failed to create parent directory: {}", parent.display())
-                })?;
-            }
-
-            std::fs::copy(path, &dst_path).with_context(|| {
-                format!(
-                    "Failed to copy file\n  src: {}\n  dst: {}",
-                    path.display(),
-                    dst_path.display()
-                )
-            })?;
+            crate::util::atomic_copy_file(path, &dst_path)?;
         }
     }
     Ok(())
