@@ -1,7 +1,28 @@
 use anyhow::{Context, Result};
 use std::fs::File;
-use std::io::{BufReader, BufWriter, Write, copy};
+use std::io::{BufReader, BufWriter, Read, Write, copy};
 use std::path::{Path, PathBuf};
+
+pub fn hash_file_blake3(path: &Path) -> Result<blake3::Hash> {
+    let file = File::open(path)
+        .with_context(|| format!("Failed to open file for hashing: {}", path.display()))?;
+    let mut reader = BufReader::new(file);
+
+    let mut hasher = blake3::Hasher::new();
+    let mut buf = [0u8; 8192];
+
+    loop {
+        let n = reader
+            .read(&mut buf)
+            .with_context(|| format!("Failed while reading file: {}", path.display()))?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+    }
+
+    Ok(hasher.finalize())
+}
 
 // Copy src -> dst using atomic replace:
 // write to a temp file in dst directory, then rename into place.
