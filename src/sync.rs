@@ -15,10 +15,9 @@ pub fn initial_sync(src: &Path, dst: &Path) -> Result<()> {
             continue;
         }
 
-        let rel = path
-            .strip_prefix(src)
-            .context("Failed to compute relative path")?;
-        let dst_path = dst.join(rel);
+        let Some(dst_path) = map_src_to_dst(src, dst, path) else {
+            continue;
+        };
 
         if entry.file_type().is_dir() {
             std::fs::create_dir_all(&dst_path)
