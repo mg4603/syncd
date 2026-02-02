@@ -34,42 +34,43 @@ pub fn watch_loop(src: &Path, dst: &Path) -> Result<()> {
 }
 
 fn apply_event(src_root: &Path, dst_root: &Path, event: Event) -> Result<()> {
-    for path in event.paths {
-        let Some(dst_path) = crate::sync::map_src_to_dst(src_root, dst_root, &path) else {
+    for src_path in event.paths {
+        let Some(dst_path) = crate::sync::map_src_to_dst(src_root, dst_root, &src_path) else {
             continue;
         };
 
-        if path.is_dir() {
-            handle_dir_event(&path, &dst_path)?;
+        if src_path.exists() {
+            handle_present(&src_path, &dst_path)?;
         } else {
-            handle_file_event(&path, &dst_path)?;
+            handle_removal(&dst_path)?;
         }
     }
 
     Ok(())
 }
 
-fn handle_file_event(src: &Path, dst: &Path) -> Result<()> {
-    if src.exists() {
-        crate::util::atomic_copy_file(src, dst)?;
-        println!("file synced: {}", dst.display());
-    } else if dst.exists() {
-        std::fs::remove_file(dst)
-            .with_context(|| format!("Failed to remove file: {}", dst.display()))?;
-        println!("file removed: {}", dst.display());
-    }
-    Ok(())
-}
-
-fn handle_dir_event(src: &Path, dst: &Path) -> Result<()> {
-    if src.exists() {
+fn handle_present(src: &Path, dst: &Path) -> Result<()> {
+    if src.is_dir() {
         std::fs::create_dir_all(dst)
             .with_context(|| format!("Failed to create directory: {}", dst.display()))?;
         println!("dir ensured: {}", dst.display());
-    } else if dst.exists() {
+    } else {
+        crate::util::atomic_copy_file(src, dst)?;
+        println!("file synced: {}", dst.display());
+    }
+
+    Ok(())
+}
+
+fn handle_removal(dst: &Path) -> Result<()> {
+    if dst.is_dir() {
         std::fs::remove_dir_all(dst)
             .with_context(|| format!("Failed to remove directory: {}", dst.display()))?;
         println!("dir removed: {}", dst.display());
+    } else {
+        std::fs::remove_file(dst)
+            .with_context(|| format!("Failed to remove file: {}", dst.display()))?;
+        println!("file removed: {}", dst.display());
     }
     Ok(())
 }
