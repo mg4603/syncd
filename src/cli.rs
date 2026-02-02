@@ -1,5 +1,6 @@
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 #[derive(Parser, Debug)]
@@ -12,20 +13,34 @@ pub struct Args {
 #[derive(Subcommand, Debug)]
 pub enum Command {
     Init { src: PathBuf, dst: PathBuf },
+    Watch { src: PathBuf, dst: PathBuf },
 }
 
 pub fn run(args: Args) -> Result<()> {
     match args.cmd {
         Command::Init { src, dst } => {
             let (src, dst) = validate_paths(&src, &dst)?;
-            println!("syncd init (MVP1 dry-run)");
+            println!("syncd init");
             println!("  src: {}", src.display());
             println!("  dst: {}", dst.display());
-            println!("  status: syncing...");
+            print!("  status: syncing...");
+            io::stdout().flush().unwrap();
 
             crate::sync::initial_sync(&src, &dst)?;
 
-            println!("  status: done");
+            println!("\r  status: done");
+            Ok(())
+        }
+        Command::Watch { src, dst } => {
+            let (src, dst) = validate_paths(&src, &dst)?;
+
+            println!("syncd watch");
+
+            crate::sync::initial_sync(&src, &dst)?;
+            println!("Initial sync done.");
+
+            crate::watch::watch_loop(&src, &dst)?;
+
             Ok(())
         }
     }
