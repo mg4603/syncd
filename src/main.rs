@@ -1,6 +1,7 @@
 mod cli;
 mod sync;
 mod util;
+mod watch;
 
 use anyhow::Result;
 use clap::Parser;

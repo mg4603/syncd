@@ -8,3 +8,4 @@ anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 walkdir = "2"
 blake3 = "1"
+notify = "6"
