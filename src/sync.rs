@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use walkdir::WalkDir;
 
@@ -48,4 +48,11 @@ pub fn initial_sync(src: &Path, dst: &Path) -> Result<()> {
     );
 
     Ok(())
+}
+
+pub fn map_src_to_dst(src_root: &Path, dst_root: &Path, src_path: &Path) -> Option<PathBuf> {
+    src_path
+        .strip_prefix(src_root)
+        .ok()
+        .map(|rel| dst_root.join(rel))
 }
