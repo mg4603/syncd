@@ -1,8 +1,9 @@
 use anyhow::{Context, Result};
-use notify::{Event, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{RecommendedWatcher, RecursiveMode, Watcher};
+use std::collections::HashSet;
 use std::path::Path;
 use std::sync::mpsc::channel;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 pub fn watch_loop(src: &Path, dst: &Path) -> Result<()> {
     let (tx, rx) = channel();
@@ -18,13 +19,37 @@ pub fn watch_loop(src: &Path, dst: &Path) -> Result<()> {
     println!("  src: {}", src.display());
     println!("  dst: {}", dst.display());
 
+    let debounce_window = Duration::from_millis(200);
+    let mut pending: HashSet<std::path::PathBuf> = HashSet::new();
+    let mut last_event_at: Option<Instant> = None;
+
     loop {
         match rx.recv_timeout(Duration::from_secs(1)) {
             Ok(event) => {
-                apply_event(src, dst, event.unwrap())?;
+                for path in event.unwrap().paths {
+                    pending.insert(path);
+                }
+                last_event_at = Some(Instant::now());
             }
+
             Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                // idle tick; keeps loop interruptible later
+                if let Some(last) = last_event_at
+                    && last.elapsed() >= debounce_window
+                    && !pending.is_empty()
+                {
+                    for path in pending.drain() {
+                        let Some(dst_path) = crate::sync::map_src_to_dst(src, dst, &path) else {
+                            continue;
+                        };
+
+                        if path.exists() {
+                            handle_present(&path, &dst_path)?;
+                        } else {
+                            handle_removal(&dst_path)?;
+                        }
+                    }
+                    last_event_at = None;
+                }
             }
             Err(e) => {
                 return Err(e).context("watch channel error");
@@ -32,23 +57,6 @@ pub fn watch_loop(src: &Path, dst: &Path) -> Result<()> {
         }
     }
 }
-
-fn apply_event(src_root: &Path, dst_root: &Path, event: Event) -> Result<()> {
-    for src_path in event.paths {
-        let Some(dst_path) = crate::sync::map_src_to_dst(src_root, dst_root, &src_path) else {
-            continue;
-        };
-
-        if src_path.exists() {
-            handle_present(&src_path, &dst_path)?;
-        } else {
-            handle_removal(&dst_path)?;
-        }
-    }
-
-    Ok(())
-}
-
 fn handle_present(src: &Path, dst: &Path) -> Result<()> {
     if src.is_dir() {
         std::fs::create_dir_all(dst)
@@ -63,6 +71,10 @@ fn handle_present(src: &Path, dst: &Path) -> Result<()> {
 }
 
 fn handle_removal(dst: &Path) -> Result<()> {
+    if !dst.exists() {
+        return Ok(());
+    }
+
     if dst.is_dir() {
         std::fs::remove_dir_all(dst)
             .with_context(|| format!("Failed to remove directory: {}", dst.display()))?;
