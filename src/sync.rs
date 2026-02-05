@@ -1,10 +1,10 @@
-use crate::ignore::is_ignored;
+use crate::ignore::IgnoreMatcher;
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use walkdir::WalkDir;
 
-pub fn initial_sync(src: &Path, dst: &Path) -> Result<()> {
+pub fn initial_sync(src: &Path, dst: &Path, ignore: &IgnoreMatcher) -> Result<()> {
     let copied = AtomicUsize::new(0);
     let skipped = AtomicUsize::new(0);
 
@@ -12,7 +12,7 @@ pub fn initial_sync(src: &Path, dst: &Path) -> Result<()> {
         let entry = entry.context("WalkDir failed")?;
         let path = entry.path();
 
-        if is_ignored(path) || path == src {
+        if ignore.is_ignored(path) || path == src {
             continue;
         }
 

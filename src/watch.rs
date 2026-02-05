@@ -1,4 +1,4 @@
-use crate::ignore::is_ignored;
+use crate::ignore::IgnoreMatcher;
 use anyhow::{Context, Result};
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use std::collections::HashSet;
@@ -6,7 +6,7 @@ use std::path::Path;
 use std::sync::mpsc::channel;
 use std::time::{Duration, Instant};
 
-pub fn watch_loop(src: &Path, dst: &Path) -> Result<()> {
+pub fn watch_loop(src: &Path, dst: &Path, ignore: &IgnoreMatcher) -> Result<()> {
     let (tx, rx) = channel();
 
     let mut watcher: RecommendedWatcher = RecommendedWatcher::new(tx, notify::Config::default())
@@ -39,7 +39,7 @@ pub fn watch_loop(src: &Path, dst: &Path) -> Result<()> {
                     && !pending.is_empty()
                 {
                     for path in pending.drain() {
-                        if is_ignored(&path) {
+                        if ignore.is_ignored(&path) {
                             continue;
                         }
 
