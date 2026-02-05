@@ -1,4 +1,5 @@
 mod cli;
+mod ignore;
 mod sync;
 mod util;
 mod watch;
