@@ -83,3 +83,40 @@ fn tmp_path_for(dst: &Path) -> PathBuf {
 
     dst.with_file_name(format!("{filename}.syncd.tmp"))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn same_contents_produce_same_hash() {
+        let dir = tempdir().unwrap();
+        let a = dir.path().join("a.txt");
+        let b = dir.path().join("b.txt");
+
+        fs::write(&a, "hello").unwrap();
+        fs::write(&b, "hello").unwrap();
+
+        let ha = hash_file_blake3(&a).unwrap();
+        let hb = hash_file_blake3(&b).unwrap();
+
+        assert_eq!(ha, hb);
+    }
+
+    #[test]
+    fn different_contents_produced_differen_hashes() {
+        let dir = tempdir().unwrap();
+        let a = dir.path().join("a.txt");
+        let b = dir.path().join("b.txt");
+
+        fs::write(&a, "hello").unwrap();
+        fs::write(&b, "world").unwrap();
+
+        let ha = hash_file_blake3(&a).unwrap();
+        let hb = hash_file_blake3(&b).unwrap();
+
+        assert_ne!(ha, hb);
+    }
+}
