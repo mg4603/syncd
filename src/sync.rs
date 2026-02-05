@@ -1,3 +1,4 @@
+use crate::ignore::is_ignored;
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -11,7 +12,7 @@ pub fn initial_sync(src: &Path, dst: &Path) -> Result<()> {
         let entry = entry.context("WalkDir failed")?;
         let path = entry.path();
 
-        if path == src {
+        if is_ignored(path) || path == src {
             continue;
         }
 

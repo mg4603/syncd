@@ -1,3 +1,4 @@
+use crate::ignore::is_ignored;
 use anyhow::{Context, Result};
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use std::collections::HashSet;
@@ -38,6 +39,10 @@ pub fn watch_loop(src: &Path, dst: &Path) -> Result<()> {
                     && !pending.is_empty()
                 {
                     for path in pending.drain() {
+                        if is_ignored(&path) {
+                            continue;
+                        }
+
                         let Some(dst_path) = crate::sync::map_src_to_dst(src, dst, &path) else {
                             continue;
                         };
