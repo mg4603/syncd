@@ -91,3 +91,40 @@ fn handle_removal(dst: &Path) -> Result<()> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::tempdir;
+
+    #[test]
+    fn removal_is_idempotent_for_missing_paths() {
+        let dir = tempdir().unwrap();
+        let p = dir.path().join("does-not-exist");
+
+        handle_removal(&p).unwrap();
+    }
+
+    #[test]
+    fn removes_file_correctly() {
+        let dir = tempdir().unwrap();
+        let p = dir.path().join("file.txt");
+
+        fs::write(&p, "data").unwrap();
+        handle_removal(&p).unwrap();
+
+        assert!(!p.exists());
+    }
+
+    #[test]
+    fn removes_directory_correctly() {
+        let dir = tempdir().unwrap();
+        let p = dir.path().join("dir");
+
+        fs::create_dir_all(&p).unwrap();
+        handle_removal(&p).unwrap();
+
+        assert!(!p.exists());
+    }
+}
