@@ -1,4 +1,6 @@
 use crate::ignore::IgnoreMatcher;
+use crate::sync::SyncEngine;
+use crate::watch::WatchEngine;
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use std::io::{self, Write};
@@ -28,7 +30,9 @@ pub fn run(args: Args) -> Result<()> {
             io::stdout().flush().unwrap();
 
             let ignore = IgnoreMatcher::new(&src);
-            crate::sync::initial_sync(&src, &dst, &ignore)?;
+            let sync = SyncEngine::new(&src, &dst, &ignore);
+
+            sync.initial_sync()?;
 
             println!("\r  status: done");
             Ok(())
@@ -39,10 +43,13 @@ pub fn run(args: Args) -> Result<()> {
             println!("syncd watch");
 
             let ignore = IgnoreMatcher::new(&src);
-            crate::sync::initial_sync(&src, &dst, &ignore)?;
+            let sync = SyncEngine::new(&src, &dst, &ignore);
+            let watch = WatchEngine::new(&src, &dst, &ignore);
+
+            sync.initial_sync()?;
             println!("Initial sync done.");
 
-            crate::watch::watch_loop(&src, &dst, &ignore)?;
+            watch.watch_loop()?;
 
             Ok(())
         }
