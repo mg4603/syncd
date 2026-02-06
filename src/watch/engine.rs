@@ -124,7 +124,7 @@ mod tests {
 
         let missing = root.join("does-not-exist");
 
-        let ignore = IgnoreMatcher::new(&root);
+        let ignore = IgnoreMatcher::new(root);
         let engine = engine(&root, &ignore);
 
         engine.handle_removal(&missing).unwrap();
@@ -138,7 +138,7 @@ mod tests {
         let f = root.join("file.txt");
         fs::write(&f, "data").unwrap();
 
-        let ignore = IgnoreMatcher::new(&root);
+        let ignore = IgnoreMatcher::new(root);
         let engine = engine(&root, &ignore);
 
         engine.handle_removal(&f).unwrap();
@@ -154,7 +154,7 @@ mod tests {
         let subdir = root.join("dir");
         fs::create_dir_all(&subdir).unwrap();
 
-        let ignore = IgnoreMatcher::new(&root);
+        let ignore = IgnoreMatcher::new(root);
         let engine = engine(&root, &ignore);
 
         engine.handle_removal(&subdir).unwrap();
